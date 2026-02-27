@@ -104,18 +104,18 @@ function a11yProps(index) {
 
 // techStacks tetap sama
 const techStacks = [
-  { icon: "html.svg", language: "HTML" },
-  { icon: "css.svg", language: "CSS" },
+  { icon: "python.svg", language: "Python" },
+  { icon: "java.svg", language: "Java" },
   { icon: "javascript.svg", language: "JavaScript" },
-  { icon: "tailwind.svg", language: "Tailwind CSS" },
-  { icon: "reactjs.svg", language: "ReactJS" },
-  { icon: "vite.svg", language: "Vite" },
+  { icon: "php.svg", language: "PHP" },
   { icon: "nodejs.svg", language: "Node JS" },
-  { icon: "bootstrap.svg", language: "Bootstrap" },
-  { icon: "firebase.svg", language: "Firebase" },
-  { icon: "MUI.svg", language: "Material UI" },
-  { icon: "vercel.svg", language: "Vercel" },
-  { icon: "SweetAlert.svg", language: "SweetAlert2" },
+  { icon: "golang.svg", language: "Go(Golang)" },
+  { icon: "reactjs.svg", language: "ReactJS" },
+  { icon: "flask.svg", language: "Flask" },
+  { icon: "laravel.svg", language: "Laravel" },
+  { icon: "mysql.svg", language: "MySQL" },
+  { icon: "django.svg", language: "Django" },
+  { icon: "postgresql.svg", language: "PostgreSQL" },
 ];
 
 export default function FullWidthTabs() {
@@ -345,7 +345,7 @@ export default function FullWidthTabs() {
                     data-aos={index % 3 === 0 ? "fade-up-right" : index % 3 === 1 ? "fade-up" : "fade-up-left"}
                     data-aos-duration={index % 3 === 0 ? "1000" : index % 3 === 1 ? "1200" : "1000"}
                   >
-                    <Certificate ImgSertif={certificate.Img} />
+                    <Certificate ImgSertif={certificate.img} />
                   </div>
                 ))}
               </div>

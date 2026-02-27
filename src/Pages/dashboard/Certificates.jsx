@@ -32,7 +32,7 @@ const CertCard = ({ cert, onDelete }) => {
           <div className="w-full aspect-[16/11.5] bg-white/5 animate-pulse" />
         )}
         <img
-          src={cert.Img}
+          src={cert.img}
           alt="Certificate"
           onLoad={() => setImgLoaded(true)}
           className={`w-full aspect-[16/11.5] object-cover group-hover:scale-105 transition-transform duration-500 ${imgLoaded ? 'block' : 'hidden'}`}
@@ -81,16 +81,46 @@ export default function Certificates() {
     const fileName = `cert-${Date.now()}-${file.name}`
     await supabase.storage.from('certificate-images').upload(fileName, file)
     const { data } = supabase.storage.from('certificate-images').getPublicUrl(fileName)
-    await supabase.from('certificates').insert({ Img: data.publicUrl })
+    await supabase.from('certificates').insert({ img: data.publicUrl })
     setFile(null); setPreview(null); setUploading(false)
     fetchCerts()
   }
 
   const deleteCert = async (id) => {
-    if (!confirm('Delete this certificate?')) return
-    await supabase.from('certificates').delete().eq('id', id)
-    fetchCerts()
-  }
+  if (!confirm("Delete this certificate?")) return;
+
+  // 1️⃣ Ambil URL dulu
+  const { data, error } = await supabase
+    .from("certificates")
+    .select("img")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) return;
+
+  const imageUrl = data.img;
+  const fileName = decodeURIComponent(imageUrl.split("/").pop());
+
+  // 2️⃣ Hapus dari storage
+  const { data: storageData, error: storageError } =
+    await supabase.storage
+      .from("certificate-images")
+      .remove([fileName]);
+
+
+  // 3️⃣ Hapus dari database
+  const { error: deleteError } = await supabase
+    .from("certificates")
+    .delete()
+    .eq("id", id);
+
+  fetchCerts();
+};
+  // const deleteCert = async (id) => {
+  //   if (!confirm('Delete this certificate?')) return
+  //   await supabase.from('certificates').delete().eq('id', id)
+  //   fetchCerts()
+  // }
 
   return (
     <div className="space-y-6">

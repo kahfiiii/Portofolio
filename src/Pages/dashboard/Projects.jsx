@@ -408,9 +408,39 @@ export default function Projects() {
     fetchProjects();
   };
 
+  // const deleteProject = async (id) => {
+  //   if (!confirm("Delete this project?")) return;
+  //   await supabase.from("projects").delete().eq("id", id);
+  //   fetchProjects();
+  // };
   const deleteProject = async (id) => {
     if (!confirm("Delete this project?")) return;
-    await supabase.from("projects").delete().eq("id", id);
+
+    // 1️⃣ Ambil URL gambar dulu
+    const { data, error } = await supabase
+      .from("projects")
+      .select("Img")
+      .eq("id", id)
+      .single();
+
+    if (data?.Img) {
+      // 2️⃣ Decode nama file (penting kalau ada spasi)
+      const fileName = decodeURIComponent(
+        data.Img.split("/").pop()
+      );
+
+      // 3️⃣ Hapus dari storage
+      const { error: storageError } = await supabase.storage
+        .from("project-images")
+        .remove([fileName]);
+    }
+
+    // 4️⃣ Hapus row database
+    const { error: deleteError } = await supabase
+      .from("projects")
+      .delete()
+      .eq("id", id);
+      
     fetchProjects();
   };
 
