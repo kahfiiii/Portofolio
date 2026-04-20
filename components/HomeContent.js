@@ -57,6 +57,11 @@ export default function HomeContent() {
 
   useEffect(() => {
     async function fetchProjects() {
+      if (!supabase) {
+        console.warn("Supabase client not initialized. Using empty projects.");
+        setLoading(false);
+        return;
+      }
       try {
         const { data, error } = await supabase
           .from('projects')
@@ -75,6 +80,11 @@ export default function HomeContent() {
     fetchProjects();
 
     async function fetchCertificates() {
+      if (!supabase) {
+        console.warn("Supabase client not initialized. Using empty certificates.");
+        setLoadingCerts(false);
+        return;
+      }
       try {
         const { data, error } = await supabase
           .from('certificates')

@@ -16,6 +16,10 @@ export default function WorksPage() {
 
   useEffect(() => {
     async function fetchProjects() {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
       try {
         const { data, error } = await supabase
           .from('projects')
