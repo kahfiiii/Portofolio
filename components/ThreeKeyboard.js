@@ -1,9 +1,9 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useState, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 
 // Dynamically import Spline ONLY when user clicks "Launch" — not on page load
 const Spline = dynamic(() => import("@splinetool/react-spline"), {
@@ -14,6 +14,20 @@ export default function ThreeKeyboard() {
   const [error, setError] = useState(false);
   const [launched, setLaunched] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const containerRef = useRef(null);
+  const splineAppRef = useRef(null);
+  const isInView = useInView(containerRef, { amount: 0.1 });
+
+  // Auto-pause/play logic based on visibility
+  useEffect(() => {
+    if (splineAppRef.current) {
+      if (isInView) {
+        splineAppRef.current.play();
+      } else {
+        splineAppRef.current.stop();
+      }
+    }
+  }, [isInView, launched]);
 
   // Error fallback
   if (error) {
@@ -43,7 +57,7 @@ export default function ThreeKeyboard() {
   }
 
   return (
-    <div className="w-full h-[600px] relative overflow-hidden">
+    <div ref={containerRef} className="w-full h-[600px] relative overflow-hidden">
 
       {/* === PREVIEW STATE (Static image) === */}
       <AnimatePresence>
@@ -134,7 +148,10 @@ export default function ThreeKeyboard() {
               <Spline
                 scene="https://prod.spline.design/pHR0bQp310hVzFZu/scene.splinecode"
                 className="w-full h-full"
-                onLoad={() => setLoaded(true)}
+                onLoad={(splineApp) => {
+                  splineAppRef.current = splineApp;
+                  setLoaded(true);
+                }}
                 onError={(e) => {
                   console.error("Spline Load Error:", e);
                   setError(true);
