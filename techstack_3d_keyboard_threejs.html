@@ -1,0 +1,265 @@
+
+<div style="background:#070a13;border-radius:18px;overflow:hidden;position:relative;">
+  <canvas id="kb3d" style="display:block;width:100%;height:400px;"></canvas>
+  <div id="kbi" style="position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;gap:12px;padding:10px 18px;background:rgba(5,7,16,0.93);border-top:1px solid #141828;opacity:0;transition:opacity .22s;pointer-events:none;">
+    <img id="kbi-ic" style="width:26px;height:26px;object-fit:contain;flex-shrink:0;" src="" alt="">
+    <div style="flex:1;min-width:0;">
+      <div id="kbi-nm" style="font-size:12px;font-weight:500;color:#b8c0e2;line-height:1.3;"></div>
+      <div id="kbi-ds" style="font-size:11px;color:#48506e;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+    </div>
+    <span id="kbi-tg" style="font-size:10px;padding:2px 8px;border-radius:4px;background:#0e1228;color:#485878;border:1px solid #1a2038;flex-shrink:0;"></span>
+  </div>
+  <div style="position:absolute;top:12px;right:14px;font-size:10px;color:#2a3050;letter-spacing:0.05em;pointer-events:none;">drag to rotate</div>
+</div>
+
+<script type="module">
+import * as THREE from 'https://esm.sh/three@0.128.0';
+import { OrbitControls } from 'https://esm.sh/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+
+const TECHS = [
+  {name:'Python',    src:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg',        desc:'General-purpose language for automation & data science', tag:'Backend · Data'},
+  {name:'JavaScript',src:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg',desc:'The language of the web — runs natively in browsers',    tag:'Frontend · Backend'},
+  {name:'React',     src:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg',         desc:'Component-based UI library by Meta for modern UIs',      tag:'Frontend · SPA'},
+  {name:'Node.js',   src:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg',       desc:'JS runtime for fast scalable server-side applications',   tag:'Backend · Runtime'},
+  {name:'PHP',       src:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/php/php-original.svg',             desc:'Server-side scripting language powering most of the web', tag:'Backend · Scripting'},
+  {name:'Laravel',   src:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/laravel/laravel-original.svg',     desc:'Elegant PHP framework with expressive syntax & tooling',  tag:'Backend · Framework'},
+  {name:'MySQL',     src:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg',         desc:"World's most popular open-source relational database",    tag:'Database · SQL'},
+  {name:'Django',    src:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/django/django-plain-wordmark.svg', desc:'High-level Python framework for rapid clean development', tag:'Backend · Framework'},
+];
+
+const canvas = document.getElementById('kb3d');
+const kbi    = document.getElementById('kbi');
+const W      = Math.round(canvas.getBoundingClientRect().width) || 680;
+const H      = 400;
+
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x070a13);
+
+const camera = new THREE.PerspectiveCamera(42, W/H, 0.1, 80);
+camera.position.set(0, 5.8, 9.2);
+camera.lookAt(0, 0, 0);
+
+const oc = new OrbitControls(camera, canvas);
+oc.enableDamping = true;
+oc.dampingFactor = 0.07;
+oc.autoRotate = true;
+oc.autoRotateSpeed = 0.55;
+oc.enableZoom = false;
+oc.enablePan = false;
+oc.minPolarAngle = 0.18;
+oc.maxPolarAngle = 1.38;
+
+// Lighting
+scene.add(new THREE.AmbientLight(0x223366, 0.5));
+
+const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+sun.position.set(5, 10, 7);
+sun.castShadow = true;
+sun.shadow.camera.left   = -8; sun.shadow.camera.right  = 8;
+sun.shadow.camera.top    = 6;  sun.shadow.camera.bottom = -6;
+sun.shadow.mapSize.set(1024,1024);
+sun.shadow.bias = -0.001;
+scene.add(sun);
+
+const fl = new THREE.DirectionalLight(0x4466bb, 0.22);
+fl.position.set(-6,4,-5); scene.add(fl);
+const rl = new THREE.DirectionalLight(0x334488, 0.13);
+rl.position.set(0,2,-8); scene.add(rl);
+
+// --- Keyboard plate ---
+const plateGeo = new THREE.BoxGeometry(9.1, 0.26, 5.0);
+const plateMat = new THREE.MeshStandardMaterial({color:0x0c0f1e,roughness:0.85,metalness:0.2});
+const plate = new THREE.Mesh(plateGeo, plateMat);
+plate.receiveShadow = true;
+scene.add(plate);
+plate.add(new THREE.LineSegments(
+  new THREE.EdgesGeometry(plateGeo),
+  new THREE.LineBasicMaterial({color:0x1e2444, transparent:true, opacity:0.85})
+));
+
+// Subtle surface grooves on plate (inner border)
+const insetGeo = new THREE.BoxGeometry(8.7, 0.02, 4.6);
+const insetMesh = new THREE.Mesh(insetGeo, new THREE.MeshStandardMaterial({color:0x090c18,roughness:0.9}));
+insetMesh.position.y = 0.14;
+plate.add(insetMesh);
+
+// --- Keycap geometry factory (tapered trapezoid) ---
+function makeCap(w, h, d, taper) {
+  const hw=w/2, hh=h/2, hd=d/2, t=taper;
+  const pos = new Float32Array([
+    -hw,-hh,-hd,  hw,-hh,-hd,  hw,-hh, hd, -hw,-hh, hd,   // bottom 0-3
+    -hw+t, hh,-hd+t,  hw-t, hh,-hd+t,  hw-t, hh, hd-t, -hw+t, hh, hd-t  // top 4-7
+  ]);
+  const idx = [
+    4,5,6, 4,6,7,   // top
+    1,0,3, 1,3,2,   // bottom
+    3,7,6, 3,6,2,   // front (+z)
+    0,1,5, 0,5,4,   // back  (-z)
+    1,2,6, 1,6,5,   // right (+x)
+    0,4,7, 0,7,3,   // left  (-x)
+  ];
+  const uv = new Float32Array([
+    0,0, 1,0, 1,1, 0,1,  // bottom UVs
+    0,0, 1,0, 1,1, 0,1,  // top UVs
+  ]);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  geo.setIndex(idx);
+  // groups: top=0, bottom=1, front=2, back=3, right=4, left=5
+  geo.addGroup(0,6,0); geo.addGroup(6,6,1);
+  geo.addGroup(12,6,2);geo.addGroup(18,6,3);
+  geo.addGroup(24,6,4);geo.addGroup(30,6,5);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// Build UV for top face properly (BoxGeometry auto-UVs the top face well)
+// We'll use BoxGeometry for reliable UVs and just shape the look with materials
+const KW=1.72, KH=0.54, KD=1.72, GAP=0.19;
+const ox=-1.5*(KW+GAP), oz=-0.5*(KD+GAP);
+const BY=0.13+KH/2;
+
+const sideMat = new THREE.MeshStandardMaterial({color:0x1c2035,roughness:0.82,metalness:0.07});
+const botMat  = new THREE.MeshStandardMaterial({color:0x080b18,roughness:0.9});
+const keyMeshes = [];
+
+TECHS.forEach((t, i) => {
+  const col=i%4, row=Math.floor(i/4);
+  const x=ox+col*(KW+GAP), z=oz+row*(KD+GAP);
+
+  const S=256;
+  const cv=document.createElement('canvas');
+  cv.width=cv.height=S;
+  const cx=cv.getContext('2d');
+
+  const bgColor = t.name==='Django' ? '#121e16' : '#181c2c';
+  const faceColor= t.name==='Django' ? '#162010' : '#1d2138';
+
+  function drawBase(){
+    cx.fillStyle=bgColor; cx.fillRect(0,0,S,S);
+    cx.fillStyle=faceColor;
+    const r=18, m=12, sw=S-m*2, sh=S-m*2;
+    cx.beginPath();
+    cx.moveTo(m+r,m); cx.lineTo(m+sw-r,m);
+    cx.arcTo(m+sw,m,m+sw,m+r,r);
+    cx.lineTo(m+sw,m+sh-r);
+    cx.arcTo(m+sw,m+sh,m+sw-r,m+sh,r);
+    cx.lineTo(m+r,m+sh);
+    cx.arcTo(m,m+sh,m,m+sh-r,r);
+    cx.lineTo(m,m+r);
+    cx.arcTo(m,m,m+r,m,r);
+    cx.closePath(); cx.fill();
+  }
+  drawBase();
+
+  cx.fillStyle='#606888';
+  cx.font='bold 42px system-ui, sans-serif';
+  cx.textAlign='center'; cx.textBaseline='middle';
+  cx.fillText(t.name.slice(0,2).toUpperCase(), S/2, S/2);
+
+  const tex=new THREE.CanvasTexture(cv);
+
+  const img=new Image();
+  img.crossOrigin='anonymous';
+  img.onload=()=>{
+    drawBase();
+    const m2=S*0.21;
+    cx.drawImage(img, m2, m2, S-m2*2, S-m2*2);
+    tex.needsUpdate=true;
+  };
+  img.onerror=()=>{};
+  img.src=t.src;
+
+  const topMat=new THREE.MeshStandardMaterial({map:tex,roughness:0.52,metalness:0.04});
+
+  // Use BoxGeometry for reliable UVs
+  const geo=new THREE.BoxGeometry(KW,KH,KD);
+  const mesh=new THREE.Mesh(geo,[sideMat,sideMat,topMat,botMat,sideMat,sideMat]);
+  mesh.position.set(x,BY,z);
+  mesh.castShadow=true; mesh.receiveShadow=true;
+
+  // Edge bevel lines
+  mesh.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo),
+    new THREE.LineBasicMaterial({color:0x2d3665,transparent:true,opacity:0.55})
+  ));
+
+  // Key stem (bottom of keycap, visible between keys)
+  const stemGeo=new THREE.BoxGeometry(KW*0.6, 0.1, KD*0.6);
+  const stemMesh=new THREE.Mesh(stemGeo,new THREE.MeshStandardMaterial({color:0x0e1122,roughness:0.9}));
+  stemMesh.position.y=-KH/2-0.05;
+  mesh.add(stemMesh);
+
+  mesh.userData={t, BY, pressing:false};
+  scene.add(mesh);
+  keyMeshes.push(mesh);
+});
+
+// Interaction
+const raycaster=new THREE.Raycaster();
+const mp=new THREE.Vector2();
+let hovKey=null;
+
+function hit(cx,cy){
+  const r=canvas.getBoundingClientRect();
+  mp.set(((cx-r.left)/r.width)*2-1,-((cy-r.top)/r.height)*2+1);
+  raycaster.setFromCamera(mp,camera);
+  const h=raycaster.intersectObjects(keyMeshes,false);
+  return h.length?h[0].object:null;
+}
+
+function showInfo(t){
+  document.getElementById('kbi-ic').src=t.src;
+  document.getElementById('kbi-nm').textContent=t.name;
+  document.getElementById('kbi-ds').textContent=t.desc;
+  document.getElementById('kbi-tg').textContent=t.tag;
+  kbi.style.opacity='1';
+}
+function hideInfo(){kbi.style.opacity='0';}
+
+canvas.addEventListener('mousemove',e=>{
+  const k=hit(e.clientX,e.clientY);
+  if(k!==hovKey){
+    hovKey=k;
+    if(k){oc.autoRotate=false;canvas.style.cursor='pointer';showInfo(k.userData.t);}
+    else{canvas.style.cursor='default';hideInfo();}
+  }
+});
+canvas.addEventListener('click',e=>{
+  const k=hit(e.clientX,e.clientY);
+  if(k){k.userData.pressing=true;setTimeout(()=>k.userData.pressing=false,200);showInfo(k.userData.t);}
+});
+canvas.addEventListener('mouseleave',()=>{hovKey=null;hideInfo();oc.autoRotate=true;});
+canvas.addEventListener('touchstart',e=>{
+  const tc=e.touches[0];
+  const k=hit(tc.clientX,tc.clientY);
+  if(k){k.userData.pressing=true;setTimeout(()=>k.userData.pressing=false,220);showInfo(k.userData.t);}
+},{passive:true});
+
+window.addEventListener('resize',()=>{
+  const nW=canvas.clientWidth;
+  camera.aspect=nW/H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(nW,H);
+});
+
+// Render loop
+(function loop(){
+  requestAnimationFrame(loop);
+  oc.update();
+  keyMeshes.forEach(k=>{
+    const tY=(k===hovKey||k.userData.pressing)?k.userData.BY-0.17:k.userData.BY;
+    k.position.y+=(tY-k.position.y)*0.18;
+  });
+  renderer.render(scene,camera);
+})();
+</script>
