@@ -101,6 +101,21 @@ export default function AboutPage() {
               />
           </div>
         </section>
+        
+        {/* Contact Section */}
+        <section className="mt-40 mb-20 border-t border-white/5 pt-40">
+           <div className="space-y-6">
+              <span className="text-[#2DD4BF] font-sans font-bold uppercase tracking-widest text-sm">Let&apos;s Connect</span>
+              <div className="space-y-4">
+                 <a href="mailto:mkafi9393@gmail.com" className="text-3xl md:text-8xl font-display font-medium hover:text-[#2DD4BF] transition-all duration-500 block underline decoration-white/5 underline-offset-8">
+                    mkafi9393@gmail.com
+                 </a>
+                 <a href="https://wa.me/6285859341752" className="text-3xl md:text-8xl font-display font-medium hover:text-[#2DD4BF] transition-all duration-500 block underline decoration-white/5 underline-offset-8">
+                    +62 858 5934 1752
+                 </a>
+              </div>
+           </div>
+        </section>
       </main>
 
       <Footer />
@@ -120,12 +135,6 @@ function SkillCard({ icon, title, items }) {
              <li key={item} className="text-white/40 font-medium text-sm group-hover:text-white/70 transition-colors uppercase tracking-wider">{item}</li>
           ))}
        </ul>
-       <a href="mailto:mkafi9393@gmail.com" className="text-2xl md:text-6xl font-display font-medium hover:text-[#2DD4BF] transition-colors block underline decoration-white/5 underline-offset-8">
-          mkafi9393@gmail.com
-       </a>
-       <a href="https://wa.me/6285859341752" className="text-2xl md:text-6xl font-display font-medium hover:text-[#2DD4BF] transition-colors block underline decoration-white/5 underline-offset-8">
-          +62 858 5934 1752
-       </a>
     </div>
   );
 }
